@@ -28,9 +28,16 @@ class IrAttachment(models.Model):
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
             for attachment in self:
-                zip_file.write(
-                    attachment._full_path(attachment.store_fname), attachment.name
+                # Use attachment read for two purpose (initial implementation wasn't):
+                # * to ensure access write
+                # * do not assume file is stored on filesystem
+                zip_file.writestr(
+                    attachment._compute_zip_file_name(), attachment.read(["raw"])[0]["raw"]
                 )
             zip_buffer.seek(0)
             zip_file.close()
         return zip_buffer
+
+    def _compute_zip_file_name(self):
+        """Give a change to easly change name of file inside zip"""
+        return self.name
